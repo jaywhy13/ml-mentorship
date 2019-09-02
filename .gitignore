@@ -1,0 +1,14 @@
+*.pickle
+
+# Generated files
+.mypy_cache/*
+
+# Env files
+.env
+secret.json
+
+# Folder icon
+.icon
+
+# VS Code
+*.code*
