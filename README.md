@@ -4,7 +4,7 @@ Code for my ML Mentorship with `#noneofconsequence`.
 
 ## Setup
 
-1. Go to [Gmail API Quickstart](https://developers.google.com/gmail/api/quickstart/js) and enable the **Gmail API** and download the **API Key**.
+1. Go to [Gmail API Quickstart](https://developers.google.com/gmail/api/quickstart/js) and enable the **Gmail API**.
 
 2. Download the Client Configuration (`credentials.json`) and save it as `mentorship/secret.json` (note the rename).
 
