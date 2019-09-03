@@ -13,12 +13,14 @@ class MessageHeaderFactory:
 class MessagePartFactory:
     @classmethod
     def build(cls, part: Dict[str, Any]) -> MessagePart:
-        body = part["body"]["data"]
+        body = part["body"].get("data", "")
         return MessagePart(
             id=part["partId"],
             mime_type=part["mimeType"],
             filename=part["filename"],
-            headers=[MessageHeaderFactory.build(header) for header in part["headers"]],
+            headers=[
+                MessageHeaderFactory.build(header) for header in part.get("headers", [])
+            ],
             # Decode the base64 encoded string
             body=str(urlsafe_b64decode(body), "utf-8"),
         )
@@ -29,9 +31,13 @@ class MessageFactory:
     def build(cls, message: Dict[str, Any]):
         payload = message["payload"]
         message_id = MessageIdFactory.build(message)
-        labels = [Label(id=label_id) for label_id in message["labelIds"]]
-        headers = [MessageHeaderFactory.build(header) for header in payload["headers"]]
-        message_parts = [MessagePartFactory.build(part) for part in payload["parts"]]
+        labels = [Label(id=label_id) for label_id in message.get("labelIds", [])]
+        headers = [
+            MessageHeaderFactory.build(header) for header in payload.get("headers", [])
+        ]
+        message_parts = [
+            MessagePartFactory.build(part) for part in payload.get("parts", [])
+        ]
 
         return Message(
             id=message_id,
