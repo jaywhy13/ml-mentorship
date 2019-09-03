@@ -42,8 +42,15 @@ def obtain_emails(dataframe: DataFrame) -> DataFrame:
         )
         messages = []
         print("Downloading emails")
+        errors = 0
         for message_id in tqdm(message_ids):
-            messages.append(gmail_api.get_message(message_id.id))
+            try:
+                messages.append(gmail_api.get_message(message_id.id))
+            except Exception:
+                errors += 1
+                pass
+        if errors:
+            print(f"Skipped {errors} errors")
         with open(EMAIL_DATABASE_FILENAME, "wb") as f:
             pickle.dump(messages, f)
     print(f"Retrieved {len(messages)} emails")
