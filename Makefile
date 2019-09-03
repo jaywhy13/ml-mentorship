@@ -7,7 +7,10 @@ download_emails:
 download_labels:
 	pipenv run python tasks.py download_labels
 
-run:
+install:
+	pipenv install
+
+start:
 	pipenv run python tasks.py run_pipeline
 
 clean:
