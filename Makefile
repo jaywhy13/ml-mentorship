@@ -10,6 +10,9 @@ download_labels:
 install:
 	pipenv install
 
+test:
+	pipenv run pytest
+
 start:
 	pipenv run python tasks.py run_pipeline
 
