@@ -9,8 +9,9 @@ from typing import Optional, List, Dict
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from diskcache import Cache
 
-from mentorship.gmail.data import Message, MessageId, Label, Header, MessagePart
+from mentorship.gmail.data import Message, MessageId
 from mentorship.gmail.factory import MessageFactory, MessageIdFactory
 
 # If modifying these scopes, delete the file token.pickle.
@@ -20,6 +21,9 @@ CREDENTIALS_FILENAME = os.path.join(
     dirname(dirname(abspath(__file__))), "credentials.pickle"
 )
 SECRET_FILENAME = os.path.join(dirname(dirname(abspath(__file__))), "secret.json")
+CACHE_LOCATION = os.getenv("CACHE_LOCATION", "/tmp/ml-mentorship-cache")
+
+cache = Cache(CACHE_LOCATION)
 
 
 class GmailApi:
@@ -34,15 +38,14 @@ class GmailApi:
         results = self.get_service().users().labels().list(userId="me").execute()
         return results
 
-    def get_messages(
+    def get_messages_for_page(
         self,
         after: Optional[date] = None,
         before: Optional[date] = None,
         includeSpamTrash: Optional[bool] = True,
         limit: Optional[int] = 1000,
-    ) -> List[MessageId]:
-        """ Retrieves emails for the user
-        """
+        page_token: Optional[str] = None,
+    ):
         query = self.build_query(after=after, before=before)
         results = (
             self.get_service()
@@ -53,19 +56,59 @@ class GmailApi:
                 q=query,
                 maxResults=limit,
                 includeSpamTrash=includeSpamTrash,
+                pageToken=page_token,
             )
             .execute()
         )
-        messages = results.get("messages", [])
-        return [MessageIdFactory.build(message) for message in messages]
+        return results
+
+    def get_messages(
+        self,
+        after: Optional[date] = None,
+        before: Optional[date] = None,
+        includeSpamTrash: Optional[bool] = True,
+        limit: int = 1000,
+    ) -> List[MessageId]:
+        """ Retrieves emails for the user
+        """
+        cache_key = f"message-ids-{after}-{before}-{limit}-{includeSpamTrash}"
+        if cache_key in cache:
+            return cache[cache_key]
+        messages: List[Dict[str, str]] = []
+        next_page_token = None
+        while True:
+            result = self.get_messages_for_page(
+                after=after,
+                before=before,
+                includeSpamTrash=includeSpamTrash,
+                limit=limit,
+                page_token=next_page_token,
+            )
+            messages_on_page = result.get("messages")
+            messages.extend(messages_on_page)
+            next_page_token = result.get("nextPageToken")
+            if not next_page_token or len(messages) > limit:
+                # Google doesn't seem to be respecting the limit we pass,
+                # so limit things manually here
+                break
+        # Truncate the messages
+        messages = messages[:limit]
+        message_ids = [MessageIdFactory.build(message) for message in messages]
+        cache.set(cache_key, message_ids, expire=None)
+        return message_ids
 
     def get_message(self, id: str, user_id="me") -> Message:
         """Retrieves a single message
         """
+        cache_key = f"message-{id}"
+        if cache_key in cache:
+            return cache[cache_key]
         result = (
             self.get_service().users().messages().get(userId=user_id, id=id).execute()
         )
-        return MessageFactory.build(result)
+        message = MessageFactory.build(result)
+        cache.set(cache_key, message, expire=None)
+        return message
 
     def build_query(
         self, after: Optional[date] = None, before: Optional[date] = None

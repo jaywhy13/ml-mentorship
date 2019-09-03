@@ -1,13 +1,16 @@
 from dataclasses import dataclass
+from dataclasses_json import dataclass_json
 from typing import List
 
 
+@dataclass_json
 @dataclass
 class Label:
 
     id: str
 
 
+@dataclass_json
 @dataclass
 class Header:
 
@@ -15,6 +18,7 @@ class Header:
     value: str
 
 
+@dataclass_json
 @dataclass
 class MessageId:
 
@@ -22,6 +26,7 @@ class MessageId:
     thread_id: str
 
 
+@dataclass_json
 @dataclass
 class MessagePart:
 
@@ -32,6 +37,7 @@ class MessagePart:
     body: str
 
 
+@dataclass_json
 @dataclass
 class Message:
 
